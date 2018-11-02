@@ -10,7 +10,7 @@ import java.util.stream.Collectors;
 public class RelationalModel extends AbstractRelationalModel {
 
     private List<String> attributes;
-    private List<Pair<Set<String>, Set<String>>> keyValues;
+    private List<AbstractFunctionalDependency> keyValues;
 
     public RelationalModel() {
         this.attributes = new ArrayList<>();
@@ -19,18 +19,18 @@ public class RelationalModel extends AbstractRelationalModel {
 
     public String[] calcClosure(String[] args) {
         List<String> current = new ArrayList<>(Arrays.asList(args));
-        List<Pair<Set<String>, Set<String>>> keyValuesCopy = new ArrayList<>(this.keyValues);
+        List<AbstractFunctionalDependency> keyValuesCopy = new ArrayList<>(this.keyValues);
 
         for (int i = 0; i < current.size(); i++) {
             boolean changed = false;
             for (int j = 0; j < keyValuesCopy.size(); j++) {
-                Pair<Set<String>, Set<String>> currentPair = keyValuesCopy.get(j);
+                AbstractFunctionalDependency currentPair = keyValuesCopy.get(j);
 
-                List<String> relationKeyAsList = new ArrayList<>(currentPair.getKey());
-                List<String> relationValueAsList = new ArrayList<>(currentPair.getValue());
+                List<String> relationKeyAsList = new ArrayList<>(currentPair.getDeterminantSet());
+                List<String> relationValueAsList = new ArrayList<>(currentPair.getDependentAttributes());
 
                 if (current.containsAll(relationKeyAsList)) {
-                    if (!currentPair.getKey().equals(currentPair.getValue()) && !current.containsAll(relationValueAsList)) {
+                    if (!currentPair.getDeterminantSet().equals(currentPair.getDependentAttributes()) && !current.containsAll(relationValueAsList)) {
                         int index = current.indexOf(relationKeyAsList.get(relationKeyAsList.size() - 1));
                         current.addAll(index + 1, relationValueAsList);
                     }
@@ -48,7 +48,8 @@ public class RelationalModel extends AbstractRelationalModel {
     public boolean isKey(String[] args, boolean minimal) {
 
         boolean isKey = false;
-        List<String> closure = Arrays.asList(this.calcClosure(args));;
+        List<String> closure = Arrays.asList(this.calcClosure(args));
+        ;
 
         Collections.sort(this.attributes);
         Collections.sort(closure);
@@ -58,9 +59,9 @@ public class RelationalModel extends AbstractRelationalModel {
 
         if (isKey && minimal) {
             List<String> currentSet = new ArrayList<>(Arrays.asList(args));
-            for (Pair<Set<String>, Set<String>> currentPair : this.keyValues) {
-                List<String> keyValueCombined = new ArrayList<>(currentPair.getKey());
-                List<String> relationValueAsList = new ArrayList<>(currentPair.getValue());
+            for (AbstractFunctionalDependency currentPair : this.keyValues) {
+                List<String> keyValueCombined = new ArrayList<>(currentPair.getDeterminantSet());
+                List<String> relationValueAsList = new ArrayList<>(currentPair.getDependentAttributes());
 
                 keyValueCombined.addAll(relationValueAsList);
                 List<String> keyValueCombinedAndReduced = keyValueCombined.stream().distinct().collect(Collectors.toList());
@@ -81,7 +82,7 @@ public class RelationalModel extends AbstractRelationalModel {
     @Override
     public void setFunctionalDependencies(Set<AbstractFunctionalDependency> functionalDependencies) {
         functionalDependencies.forEach(fd -> {
-            this.keyValues.add(Pair.makePair(fd.getDeterminantSet(), fd.getDependentAttributes()));
+            this.keyValues.addAll(functionalDependencies);
         });
     }
 
@@ -92,6 +93,13 @@ public class RelationalModel extends AbstractRelationalModel {
 
     @Override
     public boolean isBase(Set<AbstractFunctionalDependency> base) {
+
+        // evaluate all closures for keys of the base
+        List<String[]> closures = base.stream()
+                .map(b -> calcClosure(b.getDeterminantSet().toArray(new String[0])))
+                .collect(Collectors.toList());
+
+
         return false;
     }
 
@@ -135,27 +143,5 @@ public class RelationalModel extends AbstractRelationalModel {
         currentCombination.addAll(combination(subSet, size));
 
         return currentCombination;
-    }
-
-    public static class Pair<Key, Value> {
-        private Key key;
-        private Value value;
-
-        public static <Key, Value> Pair makePair(Key key, Value value) {
-            return new Pair<>(key, value);
-        }
-
-        private Pair(Key key, Value value) {
-            this.key = key;
-            this.value = value;
-        }
-
-        public Key getKey() {
-            return key;
-        }
-
-        public Value getValue() {
-            return value;
-        }
     }
 }
