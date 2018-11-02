@@ -30,5 +30,12 @@ public class Main {
         );
 
         System.out.println(Arrays.toString(relationalModel.calcClosure(new String[]{"A", "E"})));
+        System.out.println(relationalModel.isKey(new String[]{"A", "E"}, false));
+        System.out.println(relationalModel.isKey(new String[]{"A", "E"}, true));
+
+        System.out.println(relationalModel.getMinimalKeys());
+
+
+
     }
 }

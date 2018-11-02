@@ -48,7 +48,7 @@ public class RelationalModel extends AbstractRelationalModel {
     public boolean isKey(String[] args, boolean minimal) {
 
         boolean isKey = false;
-        List<String> closure = new ArrayList<>(Arrays.asList(args));
+        List<String> closure = Arrays.asList(this.calcClosure(args));;
 
         Collections.sort(this.attributes);
         Collections.sort(closure);
