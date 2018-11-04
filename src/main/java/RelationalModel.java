@@ -93,14 +93,46 @@ public class RelationalModel extends AbstractRelationalModel {
 
     @Override
     public boolean isBase(Set<AbstractFunctionalDependency> base) {
-
         // evaluate all closures for keys of the base
+        Set<AbstractFunctionalDependency> fdCopy = new HashSet<>(this.keyValues);
         List<String[]> closures = base.stream()
-                .map(b -> calcClosure(b.getDeterminantSet().toArray(new String[0])))
+                .map(b -> {
+                    String[] a = calcClosure(b.getDeterminantSet().toArray(new String[0]));
+
+                    Set<AbstractFunctionalDependency> functionalDependencies = createFunctionalDependencyFromArray(a);
+
+                    for (AbstractFunctionalDependency functionalDependency : functionalDependencies) {
+                        System.out.print(functionalDependency.getDeterminantSet() + " -> ");
+                        System.out.println(functionalDependency.getDependentAttributes());
+                        fdCopy.stream().filter(fd ->
+                                fd.getDeterminantSet().equals(functionalDependency.getDeterminantSet())
+                                        && fd.getDependentAttributes().equals(functionalDependency.getDependentAttributes()))
+                                .forEach(fd -> {
+                                    System.out.print("Found:" + fd.getDeterminantSet() + " -> ");
+                                    System.out.println(fd.getDependentAttributes());
+                                });
+
+                    }
+                    return a;
+                })
                 .collect(Collectors.toList());
 
 
         return false;
+    }
+
+    private Set<AbstractFunctionalDependency> createFunctionalDependencyFromArray(String[] set) {
+        String determinant = set[0];
+
+        Set<AbstractFunctionalDependency> functionalDependencies = new HashSet<>();
+
+        for (int i = 1; i < set.length; i++) {
+            functionalDependencies.add(new FunctionalDependency(
+                    new HashSet<>(Arrays.asList(determinant)),
+                    new HashSet<>(Arrays.asList(set[i]))
+            ));
+        }
+        return functionalDependencies;
     }
 
     private List<Set<String>> checkMinimalKeyForEachCombination(List<String> args) {
