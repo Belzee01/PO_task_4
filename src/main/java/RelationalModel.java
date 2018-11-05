@@ -95,11 +95,14 @@ public class RelationalModel extends AbstractRelationalModel {
     public boolean isBase(Set<AbstractFunctionalDependency> base) {
         // evaluate all closures for keys of the base
         Set<AbstractFunctionalDependency> fdCopy = new HashSet<>(this.keyValues);
+        RelationalModel model = new RelationalModel();
+        model.setFunctionalDependencies(base);
         List<String[]> closures = base.stream()
                 .map(b -> {
-                    String[] a = calcClosure(b.getDeterminantSet().toArray(new String[0]));
+                    String[] a = model.calcClosure(b.getDeterminantSet().toArray(new String[0]));
 
-                    Set<AbstractFunctionalDependency> functionalDependencies = createFunctionalDependencyFromArray(a);
+                    Set<AbstractFunctionalDependency> functionalDependencies =
+                            createFunctionalDependencyFromArray(b.getDeterminantSet().toArray(new String[0]), a);
 
                     for (AbstractFunctionalDependency functionalDependency : functionalDependencies) {
                         System.out.print(functionalDependency.getDeterminantSet() + " -> ");
@@ -111,7 +114,6 @@ public class RelationalModel extends AbstractRelationalModel {
                                     System.out.print("Found:" + fd.getDeterminantSet() + " -> ");
                                     System.out.println(fd.getDependentAttributes());
                                 });
-
                     }
                     return a;
                 })
@@ -121,18 +123,29 @@ public class RelationalModel extends AbstractRelationalModel {
         return false;
     }
 
-    private Set<AbstractFunctionalDependency> createFunctionalDependencyFromArray(String[] set) {
-        String determinant = set[0];
+    private Set<AbstractFunctionalDependency> createFunctionalDependencyFromArray(String[] firstOperator, String[] set) {
+        int offset = firstOperator.length;
 
         Set<AbstractFunctionalDependency> functionalDependencies = new HashSet<>();
 
-        for (int i = 1; i < set.length; i++) {
-            functionalDependencies.add(new FunctionalDependency(
-                    new HashSet<>(Arrays.asList(determinant)),
-                    new HashSet<>(Arrays.asList(set[i]))
-            ));
+        for (int i = offset; i < set.length; i++) {
+            List<List<String>> dependants =
+                    combination(subSet(new ArrayList<>(Arrays.asList(set)), Arrays.asList(firstOperator)), i / offset);
+            dependants.forEach(d -> {
+                functionalDependencies.add(new FunctionalDependency(
+                        new HashSet<>(Arrays.asList(firstOperator)),
+                        new HashSet<>(d)
+                ));
+            });
         }
         return functionalDependencies;
+    }
+
+    private static <T> List<T> subSet(ArrayList<T> set, List<T> toBeRemoved) {
+        List<T> subSet;
+        set.removeAll(toBeRemoved);
+        subSet = new ArrayList<>(set);
+        return subSet;
     }
 
     private List<Set<String>> checkMinimalKeyForEachCombination(List<String> args) {
@@ -151,7 +164,7 @@ public class RelationalModel extends AbstractRelationalModel {
         return result;
     }
 
-    private List<List<String>> combination(List<String> values, int size) {
+    public List<List<String>> combination(List<String> values, int size) {
 
         if (size == 0)
             return Collections.singletonList(Collections.emptyList());
