@@ -97,30 +97,19 @@ public class RelationalModel extends AbstractRelationalModel {
         Set<AbstractFunctionalDependency> fdCopy = new HashSet<>(this.keyValues);
         RelationalModel model = new RelationalModel();
         model.setFunctionalDependencies(base);
-        List<String[]> closures = base.stream()
-                .map(b -> {
-                    String[] a = model.calcClosure(b.getDeterminantSet().toArray(new String[0]));
+        base.forEach(b -> {
+            String[] a = model.calcClosure(b.getDeterminantSet().toArray(new String[0]));
 
-                    Set<AbstractFunctionalDependency> functionalDependencies =
-                            createFunctionalDependencyFromArray(b.getDeterminantSet().toArray(new String[0]), a);
+            Set<AbstractFunctionalDependency> functionalDependencies =
+                    createFunctionalDependencyFromArray(b.getDeterminantSet().toArray(new String[0]), a);
 
-                    for (AbstractFunctionalDependency functionalDependency : functionalDependencies) {
-                        System.out.print(functionalDependency.getDeterminantSet() + " -> ");
-                        System.out.println(functionalDependency.getDependentAttributes());
-                        fdCopy.stream().filter(fd ->
-                                fd.getDeterminantSet().equals(functionalDependency.getDeterminantSet())
-                                        && fd.getDependentAttributes().equals(functionalDependency.getDependentAttributes()))
-                                .forEach(fd -> {
-                                    System.out.print("Found:" + fd.getDeterminantSet() + " -> ");
-                                    System.out.println(fd.getDependentAttributes());
-                                });
-                    }
-                    return a;
-                })
-                .collect(Collectors.toList());
+            for (AbstractFunctionalDependency functionalDependency : functionalDependencies) {
+                fdCopy.removeIf(fd -> fd.getDeterminantSet().equals(functionalDependency.getDeterminantSet())
+                        && fd.getDependentAttributes().equals(functionalDependency.getDependentAttributes()));
+            }
+        });
 
-
-        return false;
+        return fdCopy.isEmpty();
     }
 
     private Set<AbstractFunctionalDependency> createFunctionalDependencyFromArray(String[] firstOperator, String[] set) {
@@ -128,9 +117,10 @@ public class RelationalModel extends AbstractRelationalModel {
 
         Set<AbstractFunctionalDependency> functionalDependencies = new HashSet<>();
 
+        int j = 1;
         for (int i = offset; i < set.length; i++) {
             List<List<String>> dependants =
-                    combination(subSet(new ArrayList<>(Arrays.asList(set)), Arrays.asList(firstOperator)), i / offset);
+                    combination(subSet(new ArrayList<>(Arrays.asList(set)), Arrays.asList(firstOperator)), j++);
             dependants.forEach(d -> {
                 functionalDependencies.add(new FunctionalDependency(
                         new HashSet<>(Arrays.asList(firstOperator)),
