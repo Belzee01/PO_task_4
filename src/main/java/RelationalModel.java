@@ -102,6 +102,11 @@ public class RelationalModel extends AbstractRelationalModel {
 
             Set<AbstractFunctionalDependency> functionalDependencies =
                     createFunctionalDependencyFromArray(b.getDeterminantSet().toArray(new String[0]), a);
+            for (AbstractFunctionalDependency functionalDependency : functionalDependencies) {
+                System.out.print(functionalDependency.getDeterminantSet() + " -> ");
+                System.out.println(functionalDependency.getDependentAttributes());
+
+            }
 
             for (AbstractFunctionalDependency functionalDependency : functionalDependencies) {
                 fdCopy.removeIf(fd -> fd.getDeterminantSet().equals(functionalDependency.getDeterminantSet())
@@ -128,6 +133,10 @@ public class RelationalModel extends AbstractRelationalModel {
                 ));
             });
         }
+        functionalDependencies.add(new FunctionalDependency(
+                new HashSet<>(Arrays.asList(firstOperator)),
+                new HashSet<>(Arrays.asList(firstOperator))
+        ));
         return functionalDependencies;
     }
 
