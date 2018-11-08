@@ -5,6 +5,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 public class RelationalModel extends AbstractRelationalModel {
@@ -31,8 +32,9 @@ public class RelationalModel extends AbstractRelationalModel {
 
                 if (current.containsAll(relationKeyAsList)) {
                     if (!currentPair.getDeterminantSet().equals(currentPair.getDependentAttributes()) && !current.containsAll(relationValueAsList)) {
-                        int index = current.indexOf(relationKeyAsList.get(relationKeyAsList.size() - 1));
-                        current.addAll(index + 1, relationValueAsList);
+                        AtomicInteger index = new AtomicInteger(current.indexOf(relationKeyAsList.get(relationKeyAsList.size() - 1)));
+                        index.getAndIncrement();
+                        relationValueAsList.stream().filter(rv -> !current.contains(rv)).forEach(rv -> current.add(index.getAndIncrement(), rv));
                     }
                     changed = true;
                     keyValuesCopy.remove(currentPair);
@@ -93,28 +95,22 @@ public class RelationalModel extends AbstractRelationalModel {
 
     @Override
     public boolean isBase(Set<AbstractFunctionalDependency> base) {
-        // evaluate all closures for keys of the base
-        Set<AbstractFunctionalDependency> fdCopy = new HashSet<>(this.keyValues);
         RelationalModel model = new RelationalModel();
         model.setFunctionalDependencies(base);
-        base.forEach(b -> {
-            String[] a = model.calcClosure(b.getDeterminantSet().toArray(new String[0]));
+        try {
+            this.keyValues.forEach(kv -> {
+                String[] closureWithRespectToFD = model.calcClosure(kv.getDeterminantSet().toArray(new String[0]));
 
-            Set<AbstractFunctionalDependency> functionalDependencies =
-                    createFunctionalDependencyFromArray(b.getDeterminantSet().toArray(new String[0]), a);
-            for (AbstractFunctionalDependency functionalDependency : functionalDependencies) {
-                System.out.print(functionalDependency.getDeterminantSet() + " -> ");
-                System.out.println(functionalDependency.getDependentAttributes());
-
-            }
-
-            for (AbstractFunctionalDependency functionalDependency : functionalDependencies) {
-                fdCopy.removeIf(fd -> fd.getDeterminantSet().equals(functionalDependency.getDeterminantSet())
-                        && fd.getDependentAttributes().equals(functionalDependency.getDependentAttributes()));
-            }
-        });
-
-        return fdCopy.isEmpty();
+                if (!Arrays.asList(closureWithRespectToFD).containsAll(kv.getDependentAttributes()))
+                    throw new RuntimeException("Given set is not a base for initial set of functional dependencies.\n" +
+                            "Failed on : " + kv.getDeterminantSet() + " -> " + kv.getDependentAttributes() + "\n" +
+                            "Closure for : " + kv.getDeterminantSet() + " => " + Arrays.deepToString(closureWithRespectToFD));
+            });
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+        return true;
     }
 
     private Set<AbstractFunctionalDependency> createFunctionalDependencyFromArray(String[] firstOperator, String[] set) {
