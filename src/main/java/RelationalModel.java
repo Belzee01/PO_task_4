@@ -113,29 +113,6 @@ public class RelationalModel extends AbstractRelationalModel {
         return true;
     }
 
-    private Set<AbstractFunctionalDependency> createFunctionalDependencyFromArray(String[] firstOperator, String[] set) {
-        int offset = firstOperator.length;
-
-        Set<AbstractFunctionalDependency> functionalDependencies = new HashSet<>();
-
-        int j = 1;
-        for (int i = offset; i < set.length; i++) {
-            List<List<String>> dependants =
-                    combination(subSet(new ArrayList<>(Arrays.asList(set)), Arrays.asList(firstOperator)), j++);
-            dependants.forEach(d -> {
-                functionalDependencies.add(new FunctionalDependency(
-                        new HashSet<>(Arrays.asList(firstOperator)),
-                        new HashSet<>(d)
-                ));
-            });
-        }
-        functionalDependencies.add(new FunctionalDependency(
-                new HashSet<>(Arrays.asList(firstOperator)),
-                new HashSet<>(Arrays.asList(firstOperator))
-        ));
-        return functionalDependencies;
-    }
-
     private static <T> List<T> subSet(ArrayList<T> set, List<T> toBeRemoved) {
         List<T> subSet;
         set.removeAll(toBeRemoved);
